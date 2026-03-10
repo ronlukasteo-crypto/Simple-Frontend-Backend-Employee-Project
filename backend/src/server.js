@@ -1,10 +1,10 @@
 import 'dotenv/config';                 // loads .env locally; no harm in Azure
 import express from 'express';
-// import cors from 'cors';
+import cors from 'cors';
 import { Sequelize, DataTypes } from 'sequelize';
 
 const app = express();
-//app.use(cors());                        // minimal; allows all origins
+app.use(cors());                        // minimal; allows all origins
 
 app.use(express.json());
 
@@ -45,6 +45,51 @@ app.post('/api/employees', async (req, res) => {
     });
     res.status(201).json(row);
   } catch (e) { res.status(500).json({ error: 'Failed to create employee' }); }
+});
+
+//update employee by id
+app.put('/api/employees/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const { first_name, last_name, email, birthdate, salary } = req.body;
+
+    const row = await Employee.findByPk(id);
+    if (!row) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    await row.update({
+      first_name,
+      last_name,
+      email,
+      birthdate: birthdate || null,
+      salary: salary === '' || salary === undefined ? null : Number(salary)
+    });
+
+    res.json(row);
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to update employee' });
+  }
+});
+
+// DELETE: remove employee by id
+app.delete('/api/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const row = await Employee.findByPk(id);
+    if (!row) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    await row.destroy();
+
+    res.json({ message: 'Employee deleted successfully' });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to delete employee' });
+  }
 });
 
 const port = process.env.PORT || 4000;
